@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { clothMat } from './characters.js';
 
-// Verlet cloth pinned to bones: tunic hems, coat tails, aprons, scarves — and Thorfinn's cloak.
+// Verlet cloth pinned to bones: tunic hems, coat tails, aprons, scarves, cloaks.
 // It swings with the body, trails in the "wind" you make by moving, collides with the body's capsules,
 // rests on the ground and floats up around you in the water. Realistic cloth (def.real) uses the
 // physically based material and gets a fur trim: a shaggy tube that follows its free edges.

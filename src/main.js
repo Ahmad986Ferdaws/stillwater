@@ -21,9 +21,6 @@ import { createFishing } from './world/fishing.js';
 import { getSeats } from './world/seats.js';
 import { createBoat } from './world/boat.js';
 import { createBudget } from './render/budget.js';
-import { createSkyProbe, REAL } from './render/realMaterial.js';
-import { prewarmThorfinn } from './player/thorfinn.js';
-import { CHAR_SCALE } from './player/characters.js';
 
 const $ = (id) => document.getElementById(id);
 // Yield so the loading text can paint; don't stall if the tab is in the background (no rAF there).
@@ -158,8 +155,7 @@ function setupPost(q) {
 // ==== END RENDER PIPELINE ====
 
 // ---- World ------------------------------------------------------------------
-let env, grass, flowers, water, landmarks, life, probe, boat;
-REAL.objScale.value = CHAR_SCALE;
+let env, grass, flowers, water, landmarks, life, boat;
 const controller = new Controller(camera, renderer.domElement);
 const audio = new Soundscape();
 let fx = null;
@@ -185,13 +181,11 @@ function applyScale() {
 
 async function build() {
   const say = async (t) => { $('loadText').textContent = t; await frame(); };
-  prewarmThorfinn(); // sculpted on another thread while the valley loads
   await say('Shaping the valley…');
   const terrain = await buildTerrain(say);
   scene.add(terrain);
   import('./world/caustics.js').then((m) => m.addCaustics(terrain.material)); // underwater caustics + lake-bed detail (wraps any onBeforeCompile)
   env = createEnvironment(scene, renderer);
-  probe = createSkyProbe(renderer); // sky reflections for the realistic materials
   await say('Planting the trees…');
   buildVegetation(scene);
   landmarks = buildLandmarks(scene);
@@ -231,8 +225,7 @@ function applyQuality(name) {
 }
 
 // ---- Characters -------------------------------------------------------------
-if (!store.get('tv4', false)) { store.set('traveller', 'thorfinn'); store.set('tv4', true); } // meet the new traveller once
-let charIndex = Math.max(0, PRESETS.findIndex((p) => p.id === store.get('traveller', 'thorfinn')));
+let charIndex = Math.max(0, PRESETS.findIndex((p) => p.id === store.get('traveller', 'ren')));
 let rig = null;
 const rigCache = new Map();
 let charToken = 0;
@@ -509,7 +502,6 @@ function loop(now = performance.now()) {
 
   window.__camHook?.(camera, dt); // debugging: frame shots from the console
   env.update(state === 'paused' ? 0 : dt, controller.pos, elapsed, camera.position);
-  probe.update(env, elapsed);
   updatePatches(elapsed, controller.pos, env);
   updateWater(water, dt, elapsed, env, controller.pos, controller.swimming);
   life.update(dt, elapsed, controller.pos, env);

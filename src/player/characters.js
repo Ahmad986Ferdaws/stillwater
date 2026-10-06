@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import * as S from './sdf.js';
-import { buildThorfinn } from './thorfinn.js';
 
 // Travellers are sculpted from smooth signed-distance shapes into one seamless skinned mesh
 // (no visible joints), with real bones, modelled eyes that blink and look around, hair, hats,
@@ -510,8 +509,6 @@ function foxEars(rig, { HC, hs, headJ }, fur, inner) {
 }
 
 export const PRESETS = [
-  // the realistic one: sculpted in a worker, so build() returns a promise
-  { id: 'thorfinn', name: 'Thorfinn', title: 'the Voyager', blurb: 'Has no enemies. Looking for a land without war.', build: () => buildThorfinn() },
   {
     id: 'ren', name: 'Ren', title: 'the Wanderer', blurb: 'Follows the path wherever it bends.',
     build: () => human({
