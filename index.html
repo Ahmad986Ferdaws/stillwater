@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stillwater</title>
+  <style>
+    :root {
+      --ink: #2c2a24;
+      --paper: rgba(252, 248, 238, 0.86);
+      --paper-solid: #fcf8ee;
+      --accent: #5f8f4a;
+      --soft: rgba(44, 42, 36, 0.62);
+      --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+      --sans: ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #c9dcea; color: var(--ink); font-family: var(--sans); }
+    canvas { display: block; }
+    .hidden { display: none !important; }
+    .fade { transition: opacity 1.2s ease; }
+
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: linear-gradient(#cfe3f2, #eef3e2); z-index: 20; }
+    #loading h1 { font-family: var(--serif); font-weight: 400; font-size: 64px; letter-spacing: 0.02em; margin: 0 0 8px; text-align: center; }
+    #loading p { text-align: center; color: var(--soft); font-family: var(--serif); font-style: italic; font-size: 18px; margin: 0; }
+
+    #title { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+    #title .panel { pointer-events: auto; position: absolute; left: 6vw; top: 50%; transform: translateY(-50%); width: min(420px, 88vw); }
+    #title h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(48px, 7vw, 84px); margin: 0; line-height: 1; color: #fffdf6; text-shadow: 0 2px 24px rgba(40, 60, 40, 0.35); }
+    #title .tag { font-family: var(--serif); font-style: italic; font-size: 20px; color: #fffdf6; margin: 10px 0 34px; text-shadow: 0 1px 12px rgba(40, 60, 40, 0.4); }
+    .card { background: var(--paper); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 18px; padding: 22px 24px; box-shadow: 0 10px 40px rgba(40, 50, 30, 0.18); }
+    .who { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .who .name { font-family: var(--serif); font-size: 30px; }
+    .who .role { font-family: var(--serif); font-style: italic; color: var(--soft); font-size: 17px; }
+    .blurb { margin: 10px 0 18px; color: var(--soft); font-size: 15px; line-height: 1.5; min-height: 22px; }
+    .arrows { display: flex; gap: 8px; }
+    .dots { display: flex; gap: 6px; margin-bottom: 18px; }
+    .dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(44, 42, 36, 0.2); transition: background 0.3s; }
+    .dots span.on { background: var(--accent); }
+    button { font: inherit; cursor: pointer; border: 0; }
+    .round { width: 40px; height: 40px; border-radius: 50%; background: rgba(44, 42, 36, 0.08); color: var(--ink); font-size: 18px; transition: background 0.2s; }
+    .round:hover { background: rgba(44, 42, 36, 0.16); }
+    .primary { width: 100%; padding: 14px 18px; border-radius: 12px; background: var(--accent); color: #fffdf6; font-size: 16px; letter-spacing: 0.02em; transition: transform 0.15s, background 0.2s; }
+    .primary:hover { background: #527f3f; }
+    .primary:active { transform: scale(0.98); }
+    .keys { margin-top: 14px; font-size: 12.5px; color: var(--soft); line-height: 1.7; }
+    kbd { font-family: var(--sans); font-size: 11px; background: rgba(44, 42, 36, 0.08); border-radius: 5px; padding: 1px 6px; }
+
+    #toast { position: fixed; left: 50%; top: 14vh; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; z-index: 5; }
+    #toast.show { opacity: 1; }
+    #toast .small { font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.3em; font-size: 12px; color: #fffdf6; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); }
+    #toast .big { font-family: var(--serif); font-size: 44px; color: #fffdf6; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35); margin-top: 6px; }
+    #toast .line { width: 120px; height: 1px; background: rgba(255, 253, 246, 0.8); margin: 12px auto 0; }
+
+    #hint { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); color: #fffdf6; font-size: 13px; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); opacity: 0; transition: opacity 1.5s; pointer-events: none; white-space: nowrap; z-index: 5; }
+    #hint.show { opacity: 0.92; }
+    #hint kbd { background: rgba(255, 255, 255, 0.2); color: #fffdf6; }
+    #clickToLook { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; }
+    #clickToLook .card { text-align: center; font-family: var(--serif); font-size: 18px; padding: 16px 26px; cursor: pointer; }
+
+    #pause { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(30, 40, 30, 0.18); z-index: 15; }
+    #pause .card { width: min(440px, 92vw); }
+    #pause h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; margin: 0 0 4px; }
+    #pause .sub { color: var(--soft); font-family: var(--serif); font-style: italic; margin-bottom: 20px; }
+    .row { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 12px; margin: 12px 0; font-size: 14px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(44, 42, 36, 0.2); background: var(--paper-solid); }
+    .places { margin: 18px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 13.5px; }
+    .places div { color: rgba(44, 42, 36, 0.35); }
+    .places div.found { color: var(--ink); }
+    .places div.found::before { content: '✦ '; color: var(--accent); }
+    .places div:not(.found)::before { content: '· '; }
+    .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    .ghost { padding: 12px; border-radius: 12px; background: rgba(44, 42, 36, 0.08); color: var(--ink); }
+    .ghost:hover { background: rgba(44, 42, 36, 0.14); }
+    #prompt { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%) translateY(8px); padding: 9px 16px; border-radius: 999px; background: rgba(252, 248, 238, 0.82); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--ink); font-size: 14px; opacity: 0; transition: opacity 0.35s, transform 0.35s; pointer-events: none; z-index: 6; white-space: nowrap; box-shadow: 0 6px 24px rgba(30, 40, 30, 0.18); }
+    #prompt.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #prompt.urgent { background: #fff3c4; animation: pulse 0.45s ease-in-out infinite alternate; }
+    @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }
+    #prompt kbd { font-size: 12px; background: rgba(44, 42, 36, 0.12); margin-right: 6px; }
+    .journal { margin: 4px 0 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 13px; }
+    .journal .jhead { grid-column: 1 / -1; color: var(--soft); font-family: var(--serif); font-style: italic; margin-bottom: 2px; }
+    .journal div { color: rgba(44, 42, 36, 0.35); }
+    .journal div.found { color: var(--ink); }
+    .journal span { color: var(--soft); font-size: 12px; }
+    #fps { position: fixed; right: 10px; top: 8px; font: 12px ui-monospace, monospace; color: #fff; text-shadow: 0 1px 3px #000; z-index: 30; }
+  </style>
+</head>
+<body>
+  <div id="loading"><div><h1>Stillwater</h1><p id="loadText">Waking the world…</p></div></div>
+
+  <div id="title" class="hidden">
+    <div class="panel">
+      <h1>Stillwater</h1>
+      <div class="tag">a quiet place to walk</div>
+      <div class="card">
+        <div class="who">
+          <div><div class="name" id="cName">Ren</div><div class="role" id="cRole">the Wanderer</div></div>
+          <div class="arrows"><button class="round" id="prev" aria-label="Previous traveller">‹</button><button class="round" id="next" aria-label="Next traveller">›</button></div>
+        </div>
+        <div class="blurb" id="cBlurb"></div>
+        <div class="dots" id="dots"></div>
+        <button class="primary" id="begin">Begin walking</button>
+        <div class="keys"><kbd>W A S D</kbd> walk · <kbd>Shift</kbd> jog / fast swim · <kbd>Space</kbd> hop · mouse to look · scroll to zoom<br><kbd>E</kbd> fish, sit, or take the rowboat at the dock · <kbd>C</kbd> sit · <kbd>Z</kbd> lie down · <kbd>V</kbd> wave · <kbd>Esc</kbd> rest<br>Plays fullscreen — hold <kbd>Esc</kbd> to leave it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"><div class="small" id="toastSmall">Discovered</div><div class="big" id="toastBig"></div><div class="line"></div></div>
+  <div id="hint"><kbd>W A S D</kbd> walk &nbsp; <kbd>Shift</kbd> jog &nbsp; <kbd>E</kbd> fish / sit / boat &nbsp; <kbd>C</kbd> sit &nbsp; <kbd>Z</kbd> lie down &nbsp; <kbd>V</kbd> wave &nbsp; <kbd>Esc</kbd> rest &nbsp; <kbd>M</kbd> music</div>
+  <div id="prompt"></div>
+  <div id="clickToLook" class="hidden"><div class="card">Click to keep walking</div></div>
+
+  <div id="pause" class="hidden">
+    <div class="card">
+      <h2>Resting</h2>
+      <div class="sub" id="pauseSub">Take your time.</div>
+      <div class="row"><label for="music">Music</label><input type="range" id="music" min="0" max="1" step="0.01" value="0.8" /></div>
+      <div class="row"><label for="nature">Nature</label><input type="range" id="nature" min="0" max="1" step="0.01" value="0.9" /></div>
+      <div class="row"><label for="tod">Time of day</label><input type="range" id="tod" min="0" max="1" step="0.001" value="0.1" /></div>
+      <div class="row"><label for="fpsCap">Frame rate</label>
+        <select id="fpsCap"><option value="60">Smooth (60 fps)</option><option value="30">Battery saver (30 fps)</option></select>
+      </div>
+      <div class="row"><label for="quality">Quality</label>
+        <select id="quality"><option value="low">Gentle (fast)</option><option value="medium">Balanced</option><option value="high">Lush</option></select>
+      </div>
+      <div class="places" id="places"></div>
+      <div class="journal" id="journal"></div>
+      <div class="btns"><button class="ghost" id="change">Change traveller</button><button class="primary" id="resume">Keep walking</button></div>
+    </div>
+  </div>
+  <div id="fps" class="hidden"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
